@@ -105,7 +105,7 @@ class UrlListInput(BaseModel):
 def webpage_retriever(url_list):
     """Use this to load and read the news websites from the 'country_news_search' and 'news_search' tools"""
     summaries = []
-    model = ChatOpenAI()
+    model = ChatOpenAI(openai_api_key=st.secrets["openai_api_key"])
     try:
         # Load website
         loader = NewsURLLoader(url_list)
