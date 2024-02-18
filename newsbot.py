@@ -48,7 +48,7 @@ def get_headlines(countrycode):
             # "apiKey": os.environ["NEWSAPI_API_KEY"],
             "apiKey": st.secrets["newsapi_api_key"],
             "country": countrycode,
-            "pageSize": 10,
+            "pageSize": 8,
         }
 
         response = requests.get(BASE_URL, params)
@@ -125,7 +125,7 @@ class WikiInput(BaseModel):
 
 @tool(args_schema=WikiInput)
 def wikipedia_search(query):
-    """Run Wikipedia search and get page summaries."""
+    """Run Wikipedia search and get page summaries. Only use this tool if there are no news results available."""
     page_titles = wikipedia.search(query)  # Returns a list of page titles
     if page_titles:
         print(f"No of page titles: {len(page_titles)}. The list has {page_titles}")

@@ -19,6 +19,7 @@ python-dotenv = "==1.0.1"
 requests = "==2.31.0"
 streamlit = "==1.31.1"
 wikipedia = "==1.4.0"
+newspaper3k = "*"
 
 [dev-packages]
 
