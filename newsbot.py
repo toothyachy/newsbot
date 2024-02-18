@@ -45,7 +45,8 @@ def get_headlines(countrycode):
 
     try:
         params = {
-            "apiKey": os.environ["NEWSAPI_API_KEY"],
+            # "apiKey": os.environ["NEWSAPI_API_KEY"],
+            "apiKey": st.secrets["newsapi_api_key"],
             "country": countrycode,
             "pageSize": 10,
         }
@@ -74,7 +75,8 @@ def get_news(query):
     BASE_URL = "https://newsapi.org/v2/everything?"
     try:
         params = {
-            "apiKey": os.environ["NEWSAPI_API_KEY"],
+            # "apiKey": os.environ["NEWSAPI_API_KEY"],
+            "apiKey": st.secrets["newsapi_api_key"],
             "q": query,
             # "sources": news_sources,
             "pageSize": 5,
