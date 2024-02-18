@@ -149,7 +149,11 @@ def wikipedia_search(query):
 tools = [get_headlines, get_news, webpage_retriever, wikipedia_search]
 
 ###### ------------------------------------ 2. CREATE THE CHAIN ---------------------------------------------
-model = ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0)
+model = ChatOpenAI(
+    model_name="gpt-3.5-turbo-1106",
+    temperature=0,
+    openai_api_key=st.secrets["openai_api_key"],
+)
 functions = [convert_to_openai_function(f) for f in tools]
 model_functions = model.bind(functions=functions)
 prompt = ChatPromptTemplate.from_messages(
