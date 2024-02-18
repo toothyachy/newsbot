@@ -40,7 +40,7 @@ class CountryCodeInput(BaseModel):
 
 @tool(args_schema=CountryCodeInput)
 def get_headlines(countrycode):
-    """Gets webpage links of latest headlines about a country. Use 'web_retriever' to load the webpage links to read the content."""
+    """Gets webpage links of latest headlines about a country. When given the name of a country, always use this tool first. Use 'web_retriever' to load the webpage links to read the content."""
     BASE_URL = "https://newsapi.org/v2/top-headlines?"
 
     try:
@@ -71,7 +71,7 @@ class NewsInput(BaseModel):
 
 @tool(args_schema=NewsInput)
 def get_news(query):
-    """Gets webpage links of news about a personality or event. When given the name of a personality or event, always use this tool first. Only if there are no news results, then use the 'wikipedia_search' tool. Use 'web_retriever' to load the webpage links to read the content."""
+    """Gets webpage links of news about a personality or event. When given the name of a personality or event, always use this tool first. Use 'web_retriever' to load the webpage links to read the content."""
     BASE_URL = "https://newsapi.org/v2/everything?"
     try:
         params = {
