@@ -143,7 +143,7 @@ def wikipedia_search(query):
     return summaries_str
 
 
-tools = [get_headlines, get_news, webpage_retriever, wikipedia_search]
+tools = [get_headlines, get_news, webpage_retriever]
 
 ###### ------------------------------------ 2. CREATE THE CHAIN ---------------------------------------------
 model = ChatOpenAI(
