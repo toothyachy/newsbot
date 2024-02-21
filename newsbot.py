@@ -169,8 +169,20 @@ prompt = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            """You are a friendly chat assistant who can provide the latest news and/or answers about personalities, issues, events. Look for news only if the user asks for headlines or news.
-            
+            """You are a friendly chat assistant who can provide the latest news and/or answers about personalities, issues, events. Look for news only if the user asks for headlines or news. For example:
+
+            Human: "What is the latest news about tiktok?"
+            AI: Use news_search tool
+
+            Human: "What are some popular tiktok songs?"
+            AI: Use answer_search tool
+
+            Human: "Harrison Chase"
+            AI: Use news_search tool first. If results are few, use answer_search tool.
+
+            Human: "Who is Harrison Chase"
+            AI: Use answer_search tool
+
             If the search doesn't return any results, try varying the search terms or splitting them up.
             
             In your reply to the user:
@@ -230,16 +242,16 @@ if prompt:
     for chunk in agent_executor.stream({"input": prompt}):
         if "actions" in chunk:
             if chunk["actions"][0].tool == "answer_search":
-                st.write("👨🏻‍💻👨🏻‍💻👨🏻‍💻 Searching the web...")
+                st.write("👨🏻‍💻👨🏻‍💻 Searching the web...")
             elif chunk["actions"][0].tool == "get_news":
-                st.write("🗞️🗞️🗞️ Getting the latest news...")
+                st.write("🗞️🗞️ Getting the latest news...")
             elif chunk["actions"][0].tool == "webpage_retriever":
-                st.write("👾👾👾 Retrieving info...")
+                st.write("👾👾 Retrieving info...")
             else:
-                st.write("⌛️⌛️⌛️ Just a moment more...")
+                st.write("⌛️⌛️ Just a moment more...")
         elif "steps" in chunk:
-            st.write("🕵🏻🕵🏻🕵🏻 Analysing results...")
+            st.write("🕵🏻🕵🏻 Analysing results...")
         elif "output" in chunk:
-            st.write(f"😽😽😽 Here you go!\n\n{chunk['output']}")
+            st.write(f"😽😽 Here you go!\n\n{chunk['output']}")
         else:
             raise ValueError()
