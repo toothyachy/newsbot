@@ -105,6 +105,39 @@ def answer_search(query):
         return f"An error has occurred: {e}"
 
 
+### GET COUNTRY NEWS TOOL
+class CountrySearchInput(BaseModel):
+    query: str = Field(..., description="country to search news for e.g. Singapore")
+
+
+@tool(args_schema=CountrySearchInput)
+def country_news_search(query):
+    """Search the internet for latest news about a country. Use 'web_retriever' to load the webpage links to read the content."""
+    try:
+        BASE_URL = "https://api.search.brave.com/res/v1/news/search"
+        params = {
+            "q": query,
+            "count": 5,
+            "search_lang": "en",
+        }
+
+        headers = {
+            "Accept": "application/json",
+            "Accept-Encoding": "gzip",
+            "X-Subscription-Token": st.secrets["brave_api_key"],
+        }
+        response = requests.get(BASE_URL, params=params, headers=headers)
+        results = response.json()["results"]
+        news = []
+        for r in results:
+            news.append(
+                {"title": r["title"], "url": r["url"], "description": r["description"]}
+            )
+        return news
+    except Exception as e:
+        return f"An error has occurred: {e}"
+
+
 ### WEBPAGE RETRIEVER TOOL
 class UrlListInput(BaseModel):
     url_list: List[str] = Field(..., description="List of url links to web pages")
@@ -112,7 +145,7 @@ class UrlListInput(BaseModel):
 
 @tool(args_schema=UrlListInput)
 def webpage_retriever(url_list):
-    """Use this to load and read the news websites from the 'get_news' and 'answer_search' tools"""
+    """Use this to load and read the news websites from the 'get_news', 'answer_search' and 'country_news_search' tools"""
     summaries = []
     model = ChatOpenAI(openai_api_key=st.secrets["openai_api_key"])
     try:
@@ -155,7 +188,7 @@ def wikipedia_search(query):
     return summaries_str
 
 
-tools = [get_news, answer_search, webpage_retriever]
+tools = [get_news, answer_search, country_news_search, webpage_retriever]
 
 ###### ------------------------------------ 2. CREATE THE CHAIN ---------------------------------------------
 model = ChatOpenAI(
@@ -174,14 +207,20 @@ prompt = ChatPromptTemplate.from_messages(
             Human: "What is the latest news about tiktok?"
             AI: Use news_search tool
 
-            Human: "What are some popular tiktok songs?"
-            AI: Use answer_search tool
-
             Human: "Harrison Chase"
-            AI: Use news_search tool first. If results are few, use answer_search tool.
+            AI: Use news_search tool
 
             Human: "Who is Harrison Chase"
             AI: Use answer_search tool
+
+            Human: "What are some popular tiktok songs?"
+            AI: Use answer_search tool
+
+            Human: "taylor swift and singapore"
+            AI: Use answer_search tool
+
+            Human: "latest news about Singapore"
+            AI: Use country_news_search tool
 
             If the search doesn't return any results, try varying the search terms or splitting them up.
             
@@ -210,7 +249,7 @@ agent_executor = AgentExecutor(agent=agent_chain, tools=tools, verbose=True)
 ###### ------------------------------------- 3. STREAMLIT IT --------------------------------------------
 st.title("🤖 News GPT")
 st.info(
-    """    Ask me for the latest news about a personality, a company, an issue, an event etc. Feel free to ask questions too."""
+    """    Ask me for the latest news or facts about a country, a personality, a company, an issue, an event etc."""
 )
 prompt = st.chat_input("Say something")
 
@@ -245,6 +284,8 @@ if prompt:
                 st.write("👨🏻‍💻👨🏻‍💻 Searching the web...")
             elif chunk["actions"][0].tool == "get_news":
                 st.write("🗞️🗞️ Getting the latest news...")
+            elif chunk["actions"][0].tool == "country_news_search":
+                st.write("🌎🌎 Getting country news...")
             elif chunk["actions"][0].tool == "webpage_retriever":
                 st.write("👾👾 Retrieving info...")
             else:
