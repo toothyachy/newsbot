@@ -6,23 +6,16 @@ from pydantic import BaseModel, Field
 
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.agents import (
-    tool,
-    AgentExecutor,
-    create_openai_functions_agent,
-    load_tools,
-)
+from langchain.agents import tool, AgentExecutor
 from langchain.agents.output_parsers import OpenAIFunctionsAgentOutputParser
 from langchain.agents.format_scratchpad.openai_functions import (
     format_to_openai_functions,
 )
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.schema.output_parser import StrOutputParser
-
-from langchain_core.agents import AgentFinish
 from langchain_core.utils.function_calling import convert_to_openai_function
+from langchain_community.document_loaders import NewsURLLoader, BraveSearchLoader
 
-from langchain_community.document_loaders import NewsURLLoader
 
 load_dotenv()
 
@@ -40,7 +33,7 @@ class CountryCodeInput(BaseModel):
 
 @tool(args_schema=CountryCodeInput)
 def get_headlines(countrycode):
-    """Gets webpage links of latest headlines about a country. When given the name of a country, always use this tool first. Use 'web_retriever' to load the webpage links to read the content."""
+    """Gets webpage links of latest headlines about a country. Use this tool when user cites the name of a country. Use 'web_retriever' to load the webpage links to read the content."""
     BASE_URL = "https://newsapi.org/v2/top-headlines?"
 
     try:
@@ -70,7 +63,7 @@ class NewsInput(BaseModel):
 
 @tool(args_schema=NewsInput)
 def get_news(query):
-    """Gets webpage links of news about a personality or event. When given the name of a personality or event, always use this tool first. Use 'web_retriever' to load the webpage links to read the content."""
+    """Gets webpage links of news about a personality, issue or event. Use this tool when user asks for the latest news or headlines about a personality, issue or event. Use 'web_retriever' to load the webpage links to read the content."""
     BASE_URL = "https://newsapi.org/v2/everything?"
     try:
         params = {
@@ -92,15 +85,34 @@ def get_news(query):
         return f"An error has occurred: {e}"
 
 
+### GET ANSWERS TOOL
+class SearchInput(BaseModel):
+    query: str = Field(..., description="query to search for")
+
+
+@tool(args_schema=SearchInput)
+def answer_search(query):
+    """Search the internet for answers based on the query. Use this tool when user asks a question about a personality, issue or event. Use 'web_retriever' to load the webpage links to read the content."""
+    try:
+        loader = BraveSearchLoader(
+            query=query,
+            api_key=st.secrets["brave_api_key"],
+            search_kwargs={"count": 5},
+        )
+        docs = loader.load()
+        return docs
+    except Exception as e:
+        return f"An error has occurred: {e}"
+
+
 ### WEBPAGE RETRIEVER TOOL
-# Define the class
 class UrlListInput(BaseModel):
     url_list: List[str] = Field(..., description="List of url links to web pages")
 
 
 @tool(args_schema=UrlListInput)
 def webpage_retriever(url_list):
-    """Use this to load and read the news websites from the 'country_news_search' and 'news_search' tools"""
+    """Use this to load and read the news websites from the 'get_news' and 'answer_search' tools"""
     summaries = []
     model = ChatOpenAI(openai_api_key=st.secrets["openai_api_key"])
     try:
@@ -143,7 +155,7 @@ def wikipedia_search(query):
     return summaries_str
 
 
-tools = [get_headlines, get_news, webpage_retriever]
+tools = [get_news, answer_search, webpage_retriever]
 
 ###### ------------------------------------ 2. CREATE THE CHAIN ---------------------------------------------
 model = ChatOpenAI(
@@ -157,7 +169,9 @@ prompt = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            """You are a friendly chat assistant who checks the latest news and facts about personalities, events and countries when asked. If there are no or few news results, please search wikipedia. If the search doesn't return any results, try varying the search terms or splitting them up.
+            """You are a friendly chat assistant who can provide the latest news and/or answers about personalities, issues, events. Look for news only if the user asks for headlines or news.
+            
+            If the search doesn't return any results, try varying the search terms or splitting them up.
             
             In your reply to the user:
             1. Think carefully then provide a detailed summary of the information you have received. 
@@ -184,7 +198,7 @@ agent_executor = AgentExecutor(agent=agent_chain, tools=tools, verbose=True)
 ###### ------------------------------------- 3. STREAMLIT IT --------------------------------------------
 st.title("🤖 News GPT")
 st.info(
-    """    Ask me for the latest news about a country, personality, company or event. All you need to do is enter a country, a name or an event, I'll extract the latest news if there's any; if none, you'll just get wiki info."""
+    """    Ask me for the latest news about a personality, a company, an issue, an event etc. Feel free to ask questions too."""
 )
 prompt = st.chat_input("Say something")
 
@@ -192,8 +206,8 @@ if prompt:
     st.write(f"🔍🔍 Looking for: {prompt}...")
 
     ### Simple execution
-    result = agent_executor.invoke({"input": prompt})
-    st.write(result["output"])
+    # result = agent_executor.invoke({"input": prompt})
+    # st.write(result["output"])
 
     ### Streaming all message logs
     # for chunk in agent_executor.stream({"input": prompt}):
@@ -211,3 +225,21 @@ if prompt:
     #         st.write(f"{chunk['output']}")
     #     else:
     #         raise ValueError()
+
+    # ### Streaming only the tool used
+    for chunk in agent_executor.stream({"input": prompt}):
+        if "actions" in chunk:
+            if chunk["actions"][0].tool == "answer_search":
+                st.write("👨🏻‍💻👨🏻‍💻👨🏻‍💻 Searching the web...")
+            elif chunk["actions"][0].tool == "get_news":
+                st.write("🗞️🗞️🗞️ Getting the latest news...")
+            elif chunk["actions"][0].tool == "webpage_retriever":
+                st.write("👾👾👾 Retrieving info...")
+            else:
+                st.write("⌛️⌛️⌛️ Just a moment more...")
+        elif "steps" in chunk:
+            st.write("🕵🏻🕵🏻🕵🏻 Analysing results...")
+        elif "output" in chunk:
+            st.write(f"😽😽😽 Here you go!\n\n{chunk['output']}")
+        else:
+            raise ValueError()
