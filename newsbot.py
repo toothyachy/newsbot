@@ -249,7 +249,7 @@ agent_executor = AgentExecutor(agent=agent_chain, tools=tools, verbose=True)
 ###### ------------------------------------- 3. STREAMLIT IT --------------------------------------------
 st.title("🤖 News GPT")
 st.info(
-    """    Ask me for the latest news or facts about a country, a personality, a company, an issue, an event etc."""
+    """    Ask me for the latest news or facts about a country, a personality, a company, an issue, an event etc. Typing 'Lawrence Wong' gives you the latest news about him, while 'Who is Lawrence Wong' gives you internet results about him."""
 )
 prompt = st.chat_input("Say something")
 
