@@ -15,9 +15,6 @@ newsbot_prompt = """You are a friendly chat assistant who can provide the latest
             Human: "taylor swift and singapore"
             AI: Use answer_search tool
 
-            Human: "latest news about Singapore"
-            AI: Use country_news_search tool
-
             If the search doesn't return any results, try varying the search terms or splitting them up.
             
             In your reply to the user:

@@ -6,7 +6,7 @@ from langchain_openai import ChatOpenAI
 from langchain_community.document_loaders import NewsURLLoader, BraveSearchLoader
 import streamlit as st
 
-### GET HEADLINES TOOL
+### NEWSAPI HEADLINES TOOL
 
 
 class CountryCodeInput(BaseModel):
@@ -16,7 +16,7 @@ class CountryCodeInput(BaseModel):
 
 
 @tool(args_schema=CountryCodeInput)
-def get_headlines(countrycode):
+def get_api_headlines(countrycode):
     """Gets webpage links of latest headlines about a country. Use this tool when user cites the name of a country. Use 'web_retriever' to load the webpage links to read the content."""
     BASE_URL = "https://newsapi.org/v2/top-headlines?"
 
@@ -40,13 +40,13 @@ def get_headlines(countrycode):
         return f"An error has occurred: {e}"
 
 
-### GET NEWS TOOL
+### NEWSAPI NEWS TOOL
 class NewsInput(BaseModel):
     query: str = Field(..., description="Query to search the news for")
 
 
 @tool(args_schema=NewsInput)
-def get_news(query):
+def get_api_news(query):
     """Gets webpage links of news about a personality, issue or event. Use this tool when user asks for the latest news or headlines about a personality, issue or event. Use 'web_retriever' to load the webpage links to read the content."""
     BASE_URL = "https://newsapi.org/v2/everything?"
     try:
@@ -69,7 +69,7 @@ def get_news(query):
         return f"An error has occurred: {e}"
 
 
-### GET ANSWERS TOOL
+### BRAVE SEARCH ANSWERS TOOL
 class SearchInput(BaseModel):
     query: str = Field(..., description="query to search for")
 
@@ -89,14 +89,12 @@ def answer_search(query):
         return f"An error has occurred: {e}"
 
 
-### GET COUNTRY NEWS TOOL
-class CountrySearchInput(BaseModel):
-    query: str = Field(..., description="country to search news for e.g. Singapore")
+### BRAVE SEARCH NEWS TOOL
 
 
-@tool(args_schema=CountrySearchInput)
-def country_news_search(query):
-    """Search the internet for latest news about a country. Use 'web_retriever' to load the webpage links to read the content."""
+@tool(args_schema=SearchInput)
+def news_search(query):
+    """Search the internet for latest news based on the query. Use this tool when user asks for latest news about a personality, issue or event. Use 'web_retriever' to load the webpage links to read the content."""
     try:
         BASE_URL = "https://api.search.brave.com/res/v1/news/search"
         params = {
@@ -129,7 +127,7 @@ class UrlListInput(BaseModel):
 
 @tool(args_schema=UrlListInput)
 def webpage_retriever(url_list):
-    """Use this to load and read the news websites from the 'get_news', 'answer_search' and 'country_news_search' tools"""
+    """Use this to load and read the news websites from the 'answer_search' and 'news_search' tools"""
     summaries = []
     model = ChatOpenAI(openai_api_key=st.secrets["openai_api_key"])
     try:

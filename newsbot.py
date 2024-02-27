@@ -1,105 +1,68 @@
-# OpenAI model
-from langchain_openai import ChatOpenAI
-
-# Prompts
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-
-# Agents and methods
-from langchain.agents import AgentExecutor
-from langchain.agents.output_parsers import OpenAIFunctionsAgentOutputParser
-from langchain.agents.format_scratchpad.openai_functions import (
-    format_to_openai_functions,
-)
-
-# Schemas
-from langchain.schema.runnable import RunnablePassthrough
-
-# Function calling
-from langchain_core.utils.function_calling import convert_to_openai_function
-
-# Memory
-from langchain_core.chat_history import BaseChatMessageHistory
-from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain_community.chat_message_histories import ChatMessageHistory
-
-# Streamlit
 import streamlit as st
-
-# Others
-import random
-
-# Tools
-from utils.tools import get_news, answer_search, country_news_search, webpage_retriever
-
-tools = [get_news, answer_search, country_news_search, webpage_retriever]
-
-# Prompt templates
-from templates.prompts import newsbot_prompt
-
-
-# # MODEL AND PROMPT
-model = ChatOpenAI(
-    model_name="gpt-3.5-turbo-1106",
-    temperature=0,
-    openai_api_key=st.secrets["openai_api_key"],
-)
-functions = [convert_to_openai_function(f) for f in tools]
-model_functions = model.bind(functions=functions)
-prompt = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            newsbot_prompt,
-        ),
-        MessagesPlaceholder(variable_name="history"),
-        ("human", "{input}"),
-        MessagesPlaceholder(variable_name="agent_scratchpad"),
-    ]
-)
-
-# # BASIC CHAIN AND AGENT
-agent_chain = (
-    RunnablePassthrough.assign(
-        agent_scratchpad=lambda x: format_to_openai_functions(x["intermediate_steps"])
-    )
-    | prompt
-    | model_functions
-    | OpenAIFunctionsAgentOutputParser()
-)
-
-agent_executor = AgentExecutor(agent=agent_chain, tools=tools, verbose=True)
-
-# # MEMORY MANAGEMENT
-store = st.session_state
-
-
-def get_session_history(session_id: str) -> BaseChatMessageHistory:
-    if session_id not in store:
-        store[session_id] = ChatMessageHistory()
-        # adds a new entry to the `store` dictionary with the session ID as the key and an instance of `ChatMessageHistory` as the value, i.e. a tuple containing an attribute 'messages' which is an empty list of messages.
-
-    return store[session_id]
-
-
-def gen_session_id():
-    session_id = random.randint(100000, 999999)
-    return str(session_id)
-
-
-def reset_session(current_session_id):
-    del st.session_state[current_session_id]
-    current_session_id = gen_session_id()
-    return current_session_id
-
-
-# # Initialise session
-current_session_id = gen_session_id
-
-
-# # AGENT WITH MEMORY
-agent_with_message_history = RunnableWithMessageHistory(
-    agent_executor,
+from agent import (
+    agent_with_message_history,
     get_session_history,
-    input_messages_key="input",
-    history_messages_key="history",
+    store,
+    current_session_id,
+    reset_session,
 )
+
+st.title("🤖 News GPT")
+st.caption(
+    """    Chat with me about the latest news or facts about a country, a personality, a company, an issue or an event!"""
+)
+
+# Initiate/get session history with current session id
+get_session_history(session_id=current_session_id)
+session_limit = 8
+
+# # Display chat messages from history on app rerun
+history = store[current_session_id].messages
+for i in range(len(history)):
+    if i % 2 == 0:
+        with st.chat_message("user"):
+            st.write(f"{history[i].content}")
+    else:
+        with st.chat_message("assistant"):
+            st.write(f"{history[i].content}")
+
+
+if qn := st.chat_input("Ask away!"):
+
+    # Display user message in chat message container
+    with st.chat_message("user"):
+        st.markdown(qn)
+
+    # Display assistant response in chat message container
+    with st.chat_message("assistant"):
+        stream = agent_with_message_history.stream(
+            {"input": qn},
+            config={"configurable": {"session_id": current_session_id}},
+        )
+        for chunk in stream:
+            if "actions" in chunk:
+                if "query" in chunk["actions"][0].tool_input:
+                    st.write(f"Looking for '{chunk['actions'][0].tool_input['query']}'")
+                elif chunk["actions"][0].tool == "answer_search":
+                    st.write("👨🏻‍💻👨🏻‍💻 Searching the web...")
+                elif chunk["actions"][0].tool == "get_news":
+                    st.write("🗞️🗞️ Getting the latest news...")
+                elif chunk["actions"][0].tool == "country_news_search":
+                    st.write("🌎🌎 Getting country news...")
+                elif chunk["actions"][0].tool == "webpage_retriever":
+                    st.write("👾👾 Retrieving info...")
+                else:
+                    st.write("⌛️⌛️ Just a moment more...")
+            elif "steps" in chunk:
+                st.write("😽😽 Analysing results...")
+            elif "output" in chunk:
+                st.write(f"{chunk['output']}")
+            else:
+                raise ValueError()
+
+    # If session limit is reached, delete current session key-value pair from store and generate new current session id
+    if len(history) >= session_limit:
+        st.warning("Resetting session state", icon="⚠️")
+        reset_session(current_session_id)
+
+print(len(history), current_session_id)
