@@ -7,6 +7,7 @@ from agent import (
     reset_session,
 )
 
+
 st.title("🤖 News GPT")
 st.caption(
     """    Chat with me about the latest news or facts about a country, a personality, a company, an issue or an event!"""
