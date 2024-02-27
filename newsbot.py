@@ -7,6 +7,15 @@ from agent import (
     reset_session,
 )
 
+# Enable LangSmith tracing
+import os
+
+os.environ["LANGCHAIN_TRACING_V2"] = st.secrets["langchain_tracing_v2"]
+os.environ["LANGCHAIN_PROJECT"] = st.secrets["langchain_project"]
+os.environ["LANGCHAIN_ENDPOINT"] = st.secrets["langchain_endpoint"]
+os.environ["LANGCHAIN_API_KEY"] = st.secrets["langchain_api_key"]
+
+
 st.title("🤖 News GPT")
 st.caption(
     """    Chat with me about the latest news or facts about a country, a personality, a company, an issue or an event!"""
