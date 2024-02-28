@@ -76,7 +76,7 @@ class SearchInput(BaseModel):
 
 @tool(args_schema=SearchInput)
 def answer_search(query):
-    """Search the internet for answers based on the query. Use this tool when user asks a question about a personality, issue or event. Use 'web_retriever' to load the webpage links to read the content."""
+    """Search the internet for answers based on the query. Use this tool when user asks a question about a personality, issue or event."""
     try:
         loader = BraveSearchLoader(
             query=query,
@@ -94,7 +94,7 @@ def answer_search(query):
 
 @tool(args_schema=SearchInput)
 def news_search(query):
-    """Search the internet for latest news based on the query. Use this tool when user asks for latest news about a personality, issue or event. Use 'web_retriever' to load the webpage links to read the content."""
+    """Search the internet for latest news based on the query. Use this tool when user asks for latest news about a personality, issue or event."""
     try:
         BASE_URL = "https://api.search.brave.com/res/v1/news/search"
         params = {

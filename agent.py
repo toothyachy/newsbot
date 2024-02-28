@@ -32,7 +32,7 @@ import random
 from templates.prompts import newsbot_prompt
 from utils.tools import answer_search, news_search, webpage_retriever
 
-tools = [answer_search, news_search, webpage_retriever]
+tools = [answer_search, news_search]
 
 
 # # MODEL AND PROMPT
